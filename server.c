@@ -19,29 +19,8 @@ void initServerStructures (){
     srand (time(NULL));
 
     // Init each game
-    for (int i=0; i<MAX_GAMES; i++){
-
-        // Allocate and init board
-        games[i].board = (xsd__string) malloc (BOARD_WIDTH*BOARD_HEIGHT);
-        initBoard (games[i].board);
-
-        // Calculate the first player to play
-        if ((rand()%2)==0)
-            games[i].currentPlayer = player1;
-        else
-            games[i].currentPlayer = player2;
-
-        // Allocate and init player names
-        games[i].player1Name = (xsd__string) malloc (STRING_LENGTH);
-        games[i].player2Name = (xsd__string) malloc (STRING_LENGTH);
-        memset (games[i].player1Name, 0, STRING_LENGTH);
-        memset (games[i].player2Name, 0, STRING_LENGTH);
-
-        // Game status
-        games[i].endOfGame = FALSE;
-        games[i].status = gameEmpty;
-
-        // Init mutex and cond variable
+    for (int i=0; i < MAX_GAMES; i++){
+        freeGameByIndex(i);
     }
 }
 
@@ -49,18 +28,43 @@ conecta4ns__tPlayer switchPlayer (conecta4ns__tPlayer currentPlayer){
     return (currentPlayer == player1) ? player2 : player1;
 }
 
-int searchEmptyGame (){
+int searchEmptyGame () {
 
-	
+	for(int i = 0; i < MAX_GAMES; i++)
+		if(games[i].status != gameReady)
+			return i;
+		
+	return -1;	
 }
 
 int checkPlayer (xsd__string playerName, int gameId){
 
-  
+
 }
 
 void freeGameByIndex (int index){
+	
+	// Allocate and init board
+	games[i].board = (xsd__string) malloc (BOARD_WIDTH*BOARD_HEIGHT);
+	initBoard(games[i].board);
 
+	// Calculate the first player to play
+	if ((rand()%2)==0)
+		games[i].currentPlayer = player1;
+	else
+		games[i].currentPlayer = player2;
+
+	// Allocate and init player names
+	games[i].player1Name = (xsd__string) malloc (STRING_LENGTH);
+	games[i].player2Name = (xsd__string) malloc (STRING_LENGTH);
+	memset (games[i].player1Name, 0, STRING_LENGTH);
+	memset (games[i].player2Name, 0, STRING_LENGTH);
+
+	// Game status
+	games[i].endOfGame = FALSE;
+	games[i].status = gameEmpty;
+
+	// Init mutex and cond variable
 	
 }
 
@@ -88,20 +92,35 @@ void copyGameStatusStructure (conecta4ns__tBlock* status, char* message, xsd__st
 
 int conecta4ns__register (struct soap *soap, conecta4ns__tMessage playerName, int *code){
 
-    int gameIndex = -1;
-    int result = 0;
+	int gameIndex = -1;
+	int result = 0;
 
-		// Set \0 at the end of the string
-		playerName.msg[playerName.__size] = 0;
+	// Set \0 at the end of the string
+	playerName.msg[playerName.__size] = 0;
 
-        if (DEBUG_SERVER)
-            printf ("[Register] Registering new player -> [%s]\n", playerName.msg);
-        
-       
+	if (DEBUG_SERVER)
+		printf ("[Register] Registering new player -> [%s]\n", playerName.msg);
+
+	//ERROR_SERVER_FULL
+	gameIndex = searchEmptyGame();
+	if(gameIndex == -1)
+		return ERROR_SERVER_FULL;
+	
+	if(games[gameIndex].status == gameWaitingPlayer) {//Segundo en entrar a la partida
+		if(games[gameIndex].player1Name == playerName.msg) //Lo puedo hacer tal cual al ser un xsd__string?? || => checkPlayer
+			return ERROR_PLAYER_REPEATED;
+		else {
+			games[gameIndex].player2Name =  playerName.msg;
+			games[gameIndex].status = gameReady;
+		}
+	}
+	else {
+		games[gameIndex].player1Name =  playerName.msg;
+		games[gameIndex].status = gameWaitingPlayer;
+	}
+	
     
-    
-    
-    
+    //para que necesito el code?
     
     
     
