@@ -117,20 +117,20 @@ int checkUpRight (xsd__string board, unsigned int cell, char c){
 
     int found = FALSE;
 		
-		if (((cell%BOARD_WIDTH) <= 3) && (cell < (BOARD_WIDTH*3))){
+	if (((cell%BOARD_WIDTH) <= 3) && (cell < (BOARD_WIDTH*3))){
 
-			// Check second chip
-			if ((cell+BOARD_WIDTH+1) < (BOARD_WIDTH * BOARD_HEIGHT))
-				found = (board[cell+BOARD_WIDTH+1] == c);
+		// Check second chip
+		if ((cell+BOARD_WIDTH+1) < (BOARD_WIDTH * BOARD_HEIGHT))
+			found = (board[cell+BOARD_WIDTH+1] == c);
 
-			// Check third chip
-			if (((cell+(2*BOARD_WIDTH)+2) < (BOARD_WIDTH * BOARD_HEIGHT)) && found)
-				found = (board[cell+(2*BOARD_WIDTH)+2] == c);
+		// Check third chip
+		if (((cell+(2*BOARD_WIDTH)+2) < (BOARD_WIDTH * BOARD_HEIGHT)) && found)
+			found = (board[cell+(2*BOARD_WIDTH)+2] == c);
 
-			// Check fourth chip
-			if (((cell+(3*BOARD_WIDTH)+3) < (BOARD_WIDTH * BOARD_HEIGHT)) && found )
-				found = (board[cell+(3*BOARD_WIDTH)+3] == c);
-		}
+		// Check fourth chip
+		if (((cell+(3*BOARD_WIDTH)+3) < (BOARD_WIDTH * BOARD_HEIGHT)) && found )
+			found = (board[cell+(3*BOARD_WIDTH)+3] == c);
+	}
 
 	return found;
 }
@@ -142,36 +142,36 @@ int checkWinner (xsd__string board, conecta4ns__tPlayer player){
     unsigned int found = FALSE;
     unsigned int i = 0;
 		
-		// Set chip type
-		if (player == player2)
-			c = PLAYER_2_CHIP;
+	// Set chip type
+	if (player == player2)
+		c = PLAYER_2_CHIP;
 
-		// Check every cell in the board
-		while ((!found) && (i<(BOARD_WIDTH * BOARD_HEIGHT))){
+	// Check every cell in the board
+	while ((!found) && (i<(BOARD_WIDTH * BOARD_HEIGHT))){
 
-			// Is this cell occupied by current player?
-			if (board[i] == c){
+		// Is this cell occupied by current player?
+		if (board[i] == c){
 
-				// Check 4-line chips up
-				found = checkUp (board, i, c);
+			// Check 4-line chips up
+			found = checkUp (board, i, c);
 
-				// Check 4-line chips right
-				if (!found)
-					found = checkRight (board, i, c);
-
-				// Check 4-line chips upLeft
-				if (!found)
-					found = checkUpLeft (board, i, c);
-
-				// Check 4-line chips upRight
-				if (!found)
-					found = checkUpRight (board, i, c);
-			}
-
-			// Check next cell
+			// Check 4-line chips right
 			if (!found)
-				i++;
+				found = checkRight (board, i, c);
+
+			// Check 4-line chips upLeft
+			if (!found)
+				found = checkUpLeft (board, i, c);
+
+			// Check 4-line chips upRight
+			if (!found)
+				found = checkUpRight (board, i, c);
 		}
+
+		// Check next cell
+		if (!found)
+			i++;
+	}
 
 	return found;
 }

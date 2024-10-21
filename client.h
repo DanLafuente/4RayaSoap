@@ -3,7 +3,6 @@
 #include "game.h"
 
 
-
 /**
  * Read a player move
  * @return A number between [0-6]

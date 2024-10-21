@@ -2,6 +2,7 @@
 #include "conecta4.nsmap"
 #include "game.h"
 #include <pthread.h>
+#include <string.h>
 
 /** Maximum number of active games in the server */
 #define MAX_GAMES 5
@@ -22,7 +23,8 @@ typedef struct game{
 	tGameState status;					/** Flag to indicate the status of this game */
 	
 	// Mutex and condition variable here!!!
-
+	pthread_mutex_t mutex;
+	pthread_cond_t condition;
 }tGame;
 
 

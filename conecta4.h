@@ -56,10 +56,10 @@
 #define STRING_LENGTH 128
 
 /** Players */
-typedef enum players {player1, player2} conecta4ns__tPlayer;
+typedef enum players { player1, player2 } conecta4ns__tPlayer;
 
 /** Result for moves */
-typedef enum moves {OK_move, fullColumn_move} conecta4ns__tMove;
+typedef enum moves { OK_move, fullColumn_move } conecta4ns__tMove;
 
 /** Dynamic array of chars */
 typedef char *xsd__string;
@@ -78,6 +78,5 @@ typedef struct tBlock{
 	xsd__string board;
 }conecta4ns__tBlock;
 
-int conecta4ns__register  	(conecta4ns__tMessage playerName, int *code);
-int conecta4ns__getStatus 	(conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status);
-
+int conecta4ns__register(conecta4ns__tMessage playerName, int *code);
+int conecta4ns__getStatus(conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status);

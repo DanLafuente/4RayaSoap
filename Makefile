@@ -2,7 +2,7 @@
 #SSL_FLAGS=-DWITH_OPENSSL
 
 SSL_LIBS=
-SSL_FLAGS=
+SSL_FLAGS= -w
 
 all: soapC.c client server
 

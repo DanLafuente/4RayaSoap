@@ -19,8 +19,29 @@ void initServerStructures (){
     srand (time(NULL));
 
     // Init each game
-    for (int i=0; i < MAX_GAMES; i++){
-        freeGameByIndex(i);
+    for (int i = 0; i < MAX_GAMES; i++){
+
+        // Allocate and init board
+        games[i].board = (xsd__string) malloc (BOARD_WIDTH*BOARD_HEIGHT);
+        initBoard (games[i].board);
+
+        // Calculate the first player to play
+        if ((rand() % 2) == 0)
+            games[i].currentPlayer = player1;
+        else
+            games[i].currentPlayer = player2;
+
+        // Allocate and init player names
+        games[i].player1Name = (xsd__string) malloc (STRING_LENGTH);
+        games[i].player2Name = (xsd__string) malloc (STRING_LENGTH);
+        memset (games[i].player1Name, 0, STRING_LENGTH);
+        memset (games[i].player2Name, 0, STRING_LENGTH);
+
+        // Game status
+        games[i].endOfGame = FALSE;
+        games[i].status = gameEmpty;
+
+        // Init mutex and cond variable
     }
 }
 
@@ -28,43 +49,24 @@ conecta4ns__tPlayer switchPlayer (conecta4ns__tPlayer currentPlayer){
     return (currentPlayer == player1) ? player2 : player1;
 }
 
-int searchEmptyGame () {
+int searchEmptyGame (){
+	
+	int i = 0;
+	while(i < MAX_GAMES && games[i].status == gameReady){
+		++i;
+	}
 
-	for(int i = 0; i < MAX_GAMES; i++)
-		if(games[i].status != gameReady)
-			return i;
-		
-	return -1;	
+	if(DEBUG_SERVER)
+		printf("Match found %d\n", i);
+
+	return i;
 }
 
 int checkPlayer (xsd__string playerName, int gameId){
 
-
 }
 
 void freeGameByIndex (int index){
-	
-	// Allocate and init board
-	games[i].board = (xsd__string) malloc (BOARD_WIDTH*BOARD_HEIGHT);
-	initBoard(games[i].board);
-
-	// Calculate the first player to play
-	if ((rand()%2)==0)
-		games[i].currentPlayer = player1;
-	else
-		games[i].currentPlayer = player2;
-
-	// Allocate and init player names
-	games[i].player1Name = (xsd__string) malloc (STRING_LENGTH);
-	games[i].player2Name = (xsd__string) malloc (STRING_LENGTH);
-	memset (games[i].player1Name, 0, STRING_LENGTH);
-	memset (games[i].player2Name, 0, STRING_LENGTH);
-
-	// Game status
-	games[i].endOfGame = FALSE;
-	games[i].status = gameEmpty;
-
-	// Init mutex and cond variable
 	
 }
 
@@ -89,70 +91,53 @@ void copyGameStatusStructure (conecta4ns__tBlock* status, char* message, xsd__st
     }
 }
 
-
 int conecta4ns__register (struct soap *soap, conecta4ns__tMessage playerName, int *code){
 
-	int gameIndex = -1;
-	int result = 0;
+    int gameIndex = -1;
+    int result = 0;
 
 	// Set \0 at the end of the string
 	playerName.msg[playerName.__size] = 0;
-
-	if (DEBUG_SERVER)
-		printf ("[Register] Registering new player -> [%s]\n", playerName.msg);
-
-	//ERROR_SERVER_FULL
-	gameIndex = searchEmptyGame();
-	if(gameIndex == -1)
+	
+	// Search for a empty game
+	int match = searchEmptyGame();
+	if(match == MAX_GAMES){
+		*code = -1;
 		return ERROR_SERVER_FULL;
-	
-	if(games[gameIndex].status == gameWaitingPlayer) {//Segundo en entrar a la partida
-		if(games[gameIndex].player1Name == playerName.msg) //Lo puedo hacer tal cual al ser un xsd__string?? || => checkPlayer
-			return ERROR_PLAYER_REPEATED;
-		else {
-			games[gameIndex].player2Name =  playerName.msg;
-			games[gameIndex].status = gameReady;
-		}
 	}
-	else {
-		games[gameIndex].player1Name =  playerName.msg;
-		games[gameIndex].status = gameWaitingPlayer;
-	}
-	
-    
-    //para que necesito el code?
-    
-    
-    
-    
-    
-    
-    
-    
-    
+	*code = match;
 
-  return SOAP_OK;
+	// Update game status
+	if(games[match].status == gameEmpty){	// If match is empty we register the player1
+		games[match].player1Name = malloc(sizeof(char) * playerName.__size);
+		strncpy(games[match].player1Name, playerName.msg, playerName.__size);
+	}
+	else{									// Player1 already in match so we register player2
+		if(strcmp(games[match].player1Name, games[match].player2Name))
+			return ERROR_PLAYER_REPEATED;
+
+		games[match].player2Name = malloc(sizeof(char) * playerName.__size);
+		strncpy(games[match].player2Name, playerName.msg, playerName.__size);
+	}
+	games[match].status = (games[match].status == gameWaitingPlayer) ? gameReady : gameWaitingPlayer;
+
+	if (DEBUG_SERVER){
+		printf ("[Register] Registering new player -> [%s] on game %d\n", playerName, match);
+	}
+
+	return SOAP_OK;
 }
 
 int conecta4ns__getStatus (struct soap *soap, conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status){
 	
 	char messageToPlayer [STRING_LENGTH];
 
-		// Set \0 at the end of the string and alloc memory for the status
-		playerName.msg[playerName.__size] = 0;
-        allocClearBlock (soap, status);
-		
-		if (DEBUG_SERVER)
-			printf ("Receiving getStatus() request from -> %s [%d] in game %d\n", playerName.msg, playerName.__size, gameId);
-		
-       
-    
-    
-    
-    
-    
-    
-    
+	// Set \0 at the end of the string and alloc memory for the status
+	playerName.msg[playerName.__size] = 0;
+	allocClearBlock (soap, status);
+	
+	if (DEBUG_SERVER)
+		printf ("Receiving getStatus() request from -> %s [%d] in game %d\n", playerName.msg, playerName.__size, gameId);
 
 	return SOAP_OK;
 }
@@ -181,58 +166,57 @@ int main(int argc, char **argv){
 	int port;
 	SOAP_SOCKET m, s;
 
-		// Init soap environment
-		soap_init(&soap);
+	// Init soap environment
+	soap_init(&soap);
 
-		// Configure timeouts
-		soap.send_timeout = 60; // 60 seconds
-		soap.recv_timeout = 60; // 60 seconds
-		soap.accept_timeout = 3600; // server stops after 1 hour of inactivity
-		soap.max_keep_alive = 100; // max keep-alive sequence
+	// Configure timeouts
+	soap.send_timeout = 60; // 60 seconds
+	soap.recv_timeout = 60; // 60 seconds
+	soap.accept_timeout = 3600; // server stops after 1 hour of inactivity
+	soap.max_keep_alive = 100; // max keep-alive sequence
 
-		initServerStructures();
-        pthread_mutex_init(&mutexStatusArray, NULL);
+	initServerStructures();
+	pthread_mutex_init(&mutexStatusArray, NULL);
 
-		// Get listening port
-		port = atoi(argv[1]);
+	// Get listening port
+	port = atoi(argv[1]);
 
-		// Bind
-		m = soap_bind(&soap, NULL, port, 100);
+	// Bind
+	m = soap_bind(&soap, NULL, port, 100);
 
-		if (!soap_valid_socket(m)){
-			exit(1);
-		}
+	if (!soap_valid_socket(m)){
+		exit(1);
+	}
 
-		printf("Server is ON ...\n");
+	printf("Server is ON ...\n");
+	while (TRUE){
 
-		while (TRUE){
+		// Accept a new connection
+		s = soap_accept(&soap);
 
-			// Accept a new connection
-			s = soap_accept(&soap);
+		// Socket is not valid :(
+		if (!soap_valid_socket(s)){
 
-			// Socket is not valid :(
-			if (!soap_valid_socket(s)){
-
-				if (soap.errnum){
-					soap_print_fault(&soap, stderr);
-					exit(1);
-				}
-
-				fprintf(stderr, "Time out!\n");
-				break;
+			if (soap.errnum){
+				soap_print_fault(&soap, stderr);
+				exit(1);
 			}
 
-			// Copy the SOAP environment
-			tsoap = soap_copy(&soap);
-
-			if (!tsoap){
-				printf ("SOAP copy error!\n");
-				break;
-			}
-
-			// Create a new thread to process the request
-			pthread_create(&tid, NULL, (void*(*)(void*))processRequest, (void*)tsoap);
+			fprintf(stderr, "Time out!\n");
+			break;
 		}
+
+		// Copy the SOAP environment
+		tsoap = soap_copy(&soap);
+
+		if (!tsoap){
+			printf ("SOAP copy error!\n");
+			break;
+		}
+
+		// Create a new thread to process the request
+		pthread_create(&tid, NULL, (void*(*)(void*))processRequest, (void*)tsoap);
+	}
 
 	// Detach SOAP environment
 	soap_done(&soap);
