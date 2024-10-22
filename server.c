@@ -7,7 +7,7 @@
 tGame games[MAX_GAMES];
 
 /** Mutex to protect the game status field in the array of games */
-pthread_mutex_t mutexStatusArray;
+pthread_mutex_t mutexStatusArray = PTHREAD_MUTEX_INITIALIZER;
 
 
 void initServerStructures(){
@@ -17,9 +17,6 @@ void initServerStructures(){
 
     // Init seed
     srand (time(NULL));
-
-	// Init game mutex
-	mutexStatusArray = PTHREAD_MUTEX_INITIALIZER;
 
     // Init each game
     for (int i = 0; i < MAX_GAMES; i++)
@@ -111,8 +108,15 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 
 	// Update game status
 	if(games[match].status == gameEmpty){	// If match is empty we register the player1
+		games[match].status = gameWaitingPlayer;
 		games[match].player1Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player1Name, playerName.msg, playerName.__size);
+
+		printf("Jugador durmiendose\n");
+		pthread_mutex_lock(&games[match].mutex);
+			pthread_cond_wait(&games[match].condition, &games[match].mutex);
+		pthread_mutex_unlock(&games[match].mutex);
+		printf("Jugador despertado\n");
 	}
 	else{									// Player1 already in match so we register player2
 		if(checkPlayer(playerName.msg, match)) {
@@ -122,11 +126,13 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 
 		games[match].player2Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player2Name, playerName.msg, playerName.__size);
+		pthread_cond_signal(&games[match].condition);
+		printf("Despertando al jugador1\n");
+		games[match].status = gameReady;
 	}
-	games[match].status = (games[match].status == gameWaitingPlayer) ? gameReady : gameWaitingPlayer;
-
+	
 	if (DEBUG_SERVER){
-		printf ("[Register] Registering new player -> [%s] on game %d\n", playerName, match);
+		printf ("[Register] Registering new player -> [%s] on game %d\n", playerName.msg, match);
 	}
 
 	return SOAP_OK;

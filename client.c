@@ -94,11 +94,18 @@ int main(int argc, char **argv){
 	printf("\n");
 
 	// Add player to the match
+	int matchID;
 	do{
-		int matchID;
 		soap_call_conecta4ns__register(&soap, serverURL, "", playerName, &matchID);
-	} while(matchID != ERROR_SERVER_FULL && matchID == ERROR_PLAYER_REPEATED);
+	} while(matchID == ERROR_SERVER_FULL || matchID == ERROR_PLAYER_REPEATED);
 	printf("Bienvenido %s\n", playerName.msg);
+
+	// Clean the environment
+	free(playerName.msg);
+	soap_destroy(&soap);
+	soap_end(&soap);
+	soap_done(&soap);
+	return 0;
 
 	// Start game
 	while(!endOfGame){
@@ -125,6 +132,5 @@ int main(int argc, char **argv){
 	soap_destroy(&soap);
 	soap_end(&soap);
 	soap_done(&soap);
-	
 	return 0;
 }
