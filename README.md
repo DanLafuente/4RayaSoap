@@ -1,6 +1,6 @@
 # 4RayaSoap
 Funciones Modificadas: 
-    ~En server.c : 
+   ~En server.c : 
         -initServerStructures *(una tonteria)
         -searchEmptyGame *(terminada) *(sinProbar)
         -freeGameByIndex *(terminada) *(sinProbar)
