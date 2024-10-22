@@ -57,7 +57,7 @@ int main(int argc, char **argv){
 	char *serverURL;					/** Server URL */
 	unsigned int endOfGame;				/** Flag to control the end of the game */
 	conecta4ns__tMessage playerName;	/** Player name */
-	conecta4ns__tMessage message;
+	conecta4ns__tMessage message;		/** Buffer to send messages */
 	conecta4ns__tBlock gameStatus;		/** Game status */
 	unsigned int playerMove;			/** Player move */
 	int resCode;						/** Return code from server */
@@ -83,7 +83,7 @@ int main(int argc, char **argv){
 
 	// Check arguments
 	if (argc !=2) {
-		printf("Usage: %s http://server:port\n",argv[0]);
+		printf("Usage: %s http://server:port\n", argv[0]);
 		exit(0);
 	}
 
@@ -93,27 +93,30 @@ int main(int argc, char **argv){
 	playerName.__size = strlen(playerName.msg) - 1;
 	printf("\n");
 
-	int matchID;
-	soap_call_conecta4ns__register(&soap, serverURL, "", playerName, &matchID);
+	// Add player to the match
+	do{
+		int matchID;
+		soap_call_conecta4ns__register(&soap, serverURL, "", playerName, &matchID);
+	} while(matchID != ERROR_SERVER_FULL && matchID == ERROR_PLAYER_REPEATED);
 	printf("Bienvenido %s\n", playerName.msg);
 
-	// Wait for the other player to start the game
-	int gameEnd = FALSE;
-	printf("Waiting for other player...\n");
-	while(!gameEnd){
+	// Start game
+	while(!endOfGame){
 		
 		// Get game status
 		soap_call_conecta4ns__getStatus(&soap, serverURL, "", playerName, matchID, &gameStatus);
 		printBoard(gameStatus.board, gameStatus.msgStruct.msg);
 		
 		if(gameStatus.code == GAMEOVER_WIN || gameStatus.code == GAMEOVER_DRAW || gameStatus.code == GAMEOVER_LOSE) {
-			gameEnd = TRUE;
+			endOfGame = TRUE;
 		}
 		else {
-			while(resCode == TURN_MOVE){
+
+			// Make a move
+			do{
 				unsigned int column = readMove();
 				soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
-			}
+			} while(resCode == TURN_MOVE);
 		}
 	}
 

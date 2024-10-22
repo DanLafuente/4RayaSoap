@@ -21,10 +21,8 @@ typedef struct game{
 	xsd__string player2Name;			/** Name of player 2 */
 	int endOfGame;						/** Flag to control the end of the game*/
 	tGameState status;					/** Flag to indicate the status of this game */
-	
-	// Mutex and condition variable here!!!
-	pthread_mutex_t mutex;
-	pthread_cond_t condition;
+	pthread_mutex_t mutex;				/** Mutex for condition variable */
+	pthread_cond_t condition;			/** Condition variable to make players turn */
 }tGame;
 
 

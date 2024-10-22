@@ -4,22 +4,18 @@
 void initBoard (xsd__string board){
 	
 	int empty = (int) EMPTY_CELL;
-
 	for (int i=0; i<(BOARD_WIDTH * BOARD_HEIGHT); i++)
 		board[i] = (char) empty;
 }
 
-
 conecta4ns__tMove checkMove (xsd__string board, unsigned int column){
 
     conecta4ns__tMove move = OK_move;
-		
-		if (board[(BOARD_WIDTH*(BOARD_HEIGHT-1)) + column] != EMPTY_CELL)
-			move = fullColumn_move;
+	if (board[(BOARD_WIDTH*(BOARD_HEIGHT-1)) + column] != EMPTY_CELL)
+		move = fullColumn_move;
 
 	return move;
 }
-
 
 void insertChip (xsd__string board, conecta4ns__tPlayer player, unsigned int column){
 
@@ -27,91 +23,87 @@ void insertChip (xsd__string board, conecta4ns__tPlayer player, unsigned int col
     unsigned int cell = column;
     unsigned int found = FALSE;
 
-		// Set chip type
-		if (player == player2)
-			c = PLAYER_2_CHIP;
+	// Set chip type
+	if (player == player2)
+		c = PLAYER_2_CHIP;
 
-		// Get the right row
-		while (!found){
+	// Get the right row
+	while (!found){
 
-			if (board[cell] == EMPTY_CELL)
-				found = TRUE;
-			else
-				cell += BOARD_WIDTH;
+		if (board[cell] == EMPTY_CELL)
+			found = TRUE;
+		else
+			cell += BOARD_WIDTH;
 
-			// re-Check!
-			if (cell >= (BOARD_WIDTH * BOARD_HEIGHT))
-				showError ("[insertChip] Checking out of bounds!!! :(\n");
-		}
+		// re-Check!
+		if (cell >= (BOARD_WIDTH * BOARD_HEIGHT))
+			showError ("[insertChip] Checking out of bounds!!! :(\n");
+	}
 
-		// Insert the chip!
-		board[cell] = c;
+	// Insert the chip!
+	board[cell] = c;
 }
-
 
 int checkUp (xsd__string board, unsigned int cell, char c){
 
     int found = FALSE;
 		
-		// Check second chip
-		if ((cell+BOARD_WIDTH) < (BOARD_WIDTH * BOARD_HEIGHT))
-			found = (board[cell+BOARD_WIDTH] == c);
+	// Check second chip
+	if ((cell+BOARD_WIDTH) < (BOARD_WIDTH * BOARD_HEIGHT))
+		found = (board[cell+BOARD_WIDTH] == c);
 
-		// Check third chip
-		if (((cell+(2*BOARD_WIDTH)) < (BOARD_WIDTH * BOARD_HEIGHT)) && found)
-			found = (board[cell+(2*BOARD_WIDTH)] == c);
+	// Check third chip
+	if (((cell+(2*BOARD_WIDTH)) < (BOARD_WIDTH * BOARD_HEIGHT)) && found)
+		found = (board[cell+(2*BOARD_WIDTH)] == c);
 
-		// Check fourth chip
-		if (((cell+(3*BOARD_WIDTH)) < (BOARD_WIDTH * BOARD_HEIGHT)) && found )
-			found = (board[cell+(3*BOARD_WIDTH)] == c);
+	// Check fourth chip
+	if (((cell+(3*BOARD_WIDTH)) < (BOARD_WIDTH * BOARD_HEIGHT)) && found )
+		found = (board[cell+(3*BOARD_WIDTH)] == c);
 
 	return found;
 }
-
 
 int checkRight (xsd__string board, unsigned int cell, char c){
 
     int found = FALSE;
     int limit = ((cell/BOARD_WIDTH) +1) * BOARD_WIDTH;
 		
-		// Check second chip
-		if ((cell+1) < limit)
-			found = (board[cell+1] == c);
+	// Check second chip
+	if ((cell+1) < limit)
+		found = (board[cell+1] == c);
 
-		// Check third chip
-		if (((cell+2) < limit) && found)
-			found = (board[cell+2] == c);
+	// Check third chip
+	if (((cell+2) < limit) && found)
+		found = (board[cell+2] == c);
 
-		// Check fourth chip
-		if (((cell+3) < limit) && found )
-			found = (board[cell+3] == c);
+	// Check fourth chip
+	if (((cell+3) < limit) && found )
+		found = (board[cell+3] == c);
 
 	return found;
 }
-
 
 int checkUpLeft (xsd__string board, unsigned int cell, char c){
 
     int found = FALSE;
 		
-		if (((cell%BOARD_WIDTH) >= 3) && (cell < (BOARD_WIDTH*3))){
+	if (((cell%BOARD_WIDTH) >= 3) && (cell < (BOARD_WIDTH*3))){
 
-			// Check second chip
-			if ((cell+BOARD_WIDTH-1) < (BOARD_WIDTH * BOARD_HEIGHT))
-				found = (board[cell+BOARD_WIDTH-1] == c);
+		// Check second chip
+		if ((cell+BOARD_WIDTH-1) < (BOARD_WIDTH * BOARD_HEIGHT))
+			found = (board[cell+BOARD_WIDTH-1] == c);
 
-			// Check third chip
-			if (((cell+(2*BOARD_WIDTH)-2) < (BOARD_WIDTH * BOARD_HEIGHT)) && found)
-				found = (board[cell+(2*BOARD_WIDTH)-2] == c);
+		// Check third chip
+		if (((cell+(2*BOARD_WIDTH)-2) < (BOARD_WIDTH * BOARD_HEIGHT)) && found)
+			found = (board[cell+(2*BOARD_WIDTH)-2] == c);
 
-			// Check fourth chip
-			if (((cell+(3*BOARD_WIDTH)-3) < (BOARD_WIDTH * BOARD_HEIGHT)) && found )
-				found = (board[cell+(3*BOARD_WIDTH)-3] == c);
-		}
+		// Check fourth chip
+		if (((cell+(3*BOARD_WIDTH)-3) < (BOARD_WIDTH * BOARD_HEIGHT)) && found )
+			found = (board[cell+(3*BOARD_WIDTH)-3] == c);
+	}
 
 	return found;
 }
-
 
 int checkUpRight (xsd__string board, unsigned int cell, char c){
 
@@ -134,7 +126,6 @@ int checkUpRight (xsd__string board, unsigned int cell, char c){
 
 	return found;
 }
-
 
 int checkWinner (xsd__string board, conecta4ns__tPlayer player){
 
@@ -181,14 +172,14 @@ int isBoardFull (xsd__string board){
     int i = BOARD_WIDTH*(BOARD_HEIGHT-1);
     int emptyFound = FALSE;
 		
-        // Check last row
-		while ((!emptyFound) && (i<(BOARD_WIDTH*BOARD_HEIGHT))){
+	// Check last row
+	while ((!emptyFound) && (i<(BOARD_WIDTH*BOARD_HEIGHT))){
 
-			if (board[i] == EMPTY_CELL)
-				emptyFound = TRUE;
-			else
-				i++;
-		}
+		if (board[i] == EMPTY_CELL)
+			emptyFound = TRUE;
+		else
+			i++;
+	}
 
 	return (!emptyFound);
 }
@@ -198,37 +189,36 @@ void showError(const char *msg){
     exit(0);
 }
 
-
 void printBoard (xsd__string board, xsd__string message){
 
     int cell;
 
-        // Clear screen
-        printf("\n%s\n", message);
+	// Clear screen
+	printf("\n%s\n", message);
 
-        // Show column numbers
-        printf ("  0   1   2   3   4   5   6  \n");
+	// Show column numbers
+	printf ("  0   1   2   3   4   5   6  \n");
 
-        // Draw each row
-        for (int row = (BOARD_HEIGHT - 1); row>=0; row--){
+	// Draw each row
+	for (int row = (BOARD_HEIGHT - 1); row>=0; row--){
 
-            // Current cell in the board
-            cell = row * BOARD_WIDTH;
+		// Current cell in the board
+		cell = row * BOARD_WIDTH;
 
-            // Separator line
-            printf ("|---|---|---|---|---|---|---|\n");
+		// Separator line
+		printf ("|---|---|---|---|---|---|---|\n");
 
-            // Print a row of cells
-            for (int i=cell; i<(cell+BOARD_WIDTH); i++){
-                printf("| %c ",board[i]);
-            }
+		// Print a row of cells
+		for (int i=cell; i<(cell+BOARD_WIDTH); i++){
+			printf("| %c ",board[i]);
+		}
 
-            // End of the row!
-            printf ("|\n");
-        }
+		// End of the row!
+		printf ("|\n");
+	}
 
-        // Print the base
-        printf ("|---------------------------|\n\n\n");
+	// Print the base
+	printf ("|---------------------------|\n\n\n");
 }
 
 void allocClearMessage (struct soap *soap, conecta4ns__tMessage* msg){

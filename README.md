@@ -1,15 +1,4 @@
 # 4RayaSoap
 
-Funciones Modificadas: 
-
-   ~En server.c : 
-   
-        -initServerStructures *(una tonteria)
-        
-        -searchEmptyGame *(terminada) *(sinProbar)
-        
-        -freeGameByIndex *(terminada) *(sinProbar)
-        
-        -conecta4ns__register *(noTerminada)
-
-
+## Terminar función insertChip del servidor
+## Corregir lógica de errores en el servidor
