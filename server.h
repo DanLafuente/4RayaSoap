@@ -61,9 +61,9 @@ int checkPlayer (xsd__string playerName, int gameId);
 
 /**
  * Initializes the game structure at the index position in the array
- * @param index Position of the game in the array
+ * @param i Position of the game in the array
  */
-void freeGameByIndex (int index);
+void freeGameByIndex (int i);
 
 /**
  * Copies the data to be sent in a conecta4ns__tBlock structure.

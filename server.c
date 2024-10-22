@@ -19,9 +19,34 @@ void initServerStructures (){
     srand (time(NULL));
 
     // Init each game
-    for (int i = 0; i < MAX_GAMES; i++){
+    for (int i = 0; i < MAX_GAMES; i++)
+		freeGameByIndex(i);      
+}
 
-        // Allocate and init board
+conecta4ns__tPlayer switchPlayer (conecta4ns__tPlayer currentPlayer){
+    return (currentPlayer == player1) ? player2 : player1;
+}
+
+int searchEmptyGame (){
+	
+	int i = 0;
+	while(i < MAX_GAMES && games[i].status == gameReady){
+		++i;
+	}
+
+	if(DEBUG_SERVER)
+		printf("Match found %d\n", i);
+
+	return i;
+}
+
+int checkPlayer (xsd__string playerName, int gameId) {
+	return strcmp(games[gameId].player1Name, playerName);
+}
+
+void freeGameByIndex (int i){
+
+	// Allocate and init board
         games[i].board = (xsd__string) malloc (BOARD_WIDTH*BOARD_HEIGHT);
         initBoard (games[i].board);
 
@@ -42,32 +67,6 @@ void initServerStructures (){
         games[i].status = gameEmpty;
 
         // Init mutex and cond variable
-    }
-}
-
-conecta4ns__tPlayer switchPlayer (conecta4ns__tPlayer currentPlayer){
-    return (currentPlayer == player1) ? player2 : player1;
-}
-
-int searchEmptyGame (){
-	
-	int i = 0;
-	while(i < MAX_GAMES && games[i].status == gameReady){
-		++i;
-	}
-
-	if(DEBUG_SERVER)
-		printf("Match found %d\n", i);
-
-	return i;
-}
-
-int checkPlayer (xsd__string playerName, int gameId){
-
-}
-
-void freeGameByIndex (int index){
-	
 }
 
 void copyGameStatusStructure (conecta4ns__tBlock* status, char* message, xsd__string board, int newCode){
@@ -102,8 +101,8 @@ int conecta4ns__register (struct soap *soap, conecta4ns__tMessage playerName, in
 	// Search for a empty game
 	int match = searchEmptyGame();
 	if(match == MAX_GAMES){
-		*code = -1;
-		return ERROR_SERVER_FULL;
+		*code = ERROR_SERVER_FULL;
+		return SOAP_OK;
 	}
 	*code = match;
 
@@ -113,8 +112,10 @@ int conecta4ns__register (struct soap *soap, conecta4ns__tMessage playerName, in
 		strncpy(games[match].player1Name, playerName.msg, playerName.__size);
 	}
 	else{									// Player1 already in match so we register player2
-		if(strcmp(games[match].player1Name, games[match].player2Name))
-			return ERROR_PLAYER_REPEATED;
+		if(checkPlayer(playerName.msg, match)) {
+			*code = ERROR_PLAYER_REPEATED;
+			return SOAP_OK;
+		}
 
 		games[match].player2Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player2Name, playerName.msg, playerName.__size);
@@ -134,10 +135,36 @@ int conecta4ns__getStatus (struct soap *soap, conecta4ns__tMessage playerName, i
 
 	// Set \0 at the end of the string and alloc memory for the status
 	playerName.msg[playerName.__size] = 0;
-	allocClearBlock (soap, status);
+	allocClearBlock(soap, status);
 	
 	if (DEBUG_SERVER)
 		printf ("Receiving getStatus() request from -> %s [%d] in game %d\n", playerName.msg, playerName.__size, gameId);
+
+
+	conecta4ns__tPlayer player;
+	if(checkPlayer(playerName.msg, gameId)){//Es el jugador 1
+		player = player1;
+	}
+	else{
+		player = player2;
+	}
+
+	if(player != games[gameId].currentPlayer)
+		pthread_cond_wait(&games[gameId].condition, &games[gameId].mutex);
+
+	return SOAP_OK;
+}
+
+int conecta4ns__insertChip(struct soap *soap, conecta4ns__tMessage playerName, int matchID, int column, int* resCode){
+
+	// Comprobar que no se quiere colocar en una columna llena
+	if(!checkMove(games[matchID].board, column))
+		*resCode = TURN_MOVE;
+	else {
+
+	}
+
+
 
 	return SOAP_OK;
 }

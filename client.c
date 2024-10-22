@@ -98,11 +98,23 @@ int main(int argc, char **argv){
 	printf("Bienvenido %s\n", playerName.msg);
 
 	// Wait for the other player to start the game
+	int gameEnd = FALSE;
 	printf("Waiting for other player...\n");
-	while(1){
-		soap_call_conecta4ns__getStatus(&soap, serverURL, "", playerName.msg, matchID, &gameStatus);
-		unsigned int column = readMove();
-		//soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName.msg, matchID, column, &resCode);
+	while(!gameEnd){
+		
+		// Get game status
+		soap_call_conecta4ns__getStatus(&soap, serverURL, "", playerName, matchID, &gameStatus);
+		printBoard(gameStatus.board, gameStatus.msgStruct.msg);
+		
+		if(gameStatus.code == GAMEOVER_WIN || gameStatus.code == GAMEOVER_DRAW || gameStatus.code == GAMEOVER_LOSE) {
+			gameEnd = TRUE;
+		}
+		else {
+			while(resCode == TURN_MOVE){
+				unsigned int column = readMove();
+				soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
+			}
+		}
 	}
 
 	// Clean the environment

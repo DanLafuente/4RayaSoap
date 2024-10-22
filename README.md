@@ -12,4 +12,4 @@ Funciones Modificadas:
         
         -conecta4ns__register *(noTerminada)
 
-PD: oscar como se hace esto bonito? :(
+
