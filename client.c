@@ -114,7 +114,9 @@ int main(int argc, char **argv){
 		soap_call_conecta4ns__getStatus(&soap, serverURL, "", playerName, matchID, &gameStatus);
 		printBoard(gameStatus.board, gameStatus.msgStruct.msg);
 		
+		/*
 		if(gameStatus.code == GAMEOVER_WIN || gameStatus.code == GAMEOVER_DRAW || gameStatus.code == GAMEOVER_LOSE) {
+		
 			endOfGame = TRUE;
 		}
 		else {
@@ -124,6 +126,18 @@ int main(int argc, char **argv){
 				unsigned int column = readMove();
 				soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
 			} while(resCode == TURN_MOVE);
+		}
+		*/
+
+		// Make a move
+		do{
+			unsigned int column = readMove();
+			soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
+		} while(resCode == TURN_MOVE);
+
+		if(resCode == GAMEOVER_WIN || resCode == GAMEOVER_DRAW || resCode == GAMEOVER_LOSE) {
+			
+			endOfGame = TRUE;
 		}
 	}
 
