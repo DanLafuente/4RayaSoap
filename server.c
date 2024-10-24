@@ -156,7 +156,6 @@ int conecta4ns__getStatus(struct soap *soap, conecta4ns__tMessage playerName, in
 		pthread_mutex_unlock(&games[gameId].mutex);
 	}
 
-
 	return SOAP_OK;
 }
 
@@ -169,18 +168,37 @@ int conecta4ns__insertChip(struct soap *soap, conecta4ns__tMessage playerName, i
 	}	
 
 	conecta4ns__tPlayer player = checkPlayer(playerName.msg, matchID) ? player1 : player2;
-	insertChip(games[matchID].board, player, column);
-	if(checkWinner(games[matchID].board, player)){
-		// Mandar codigo de ganador
-	}
-	else{
-		// Mandar codigo de espera
-	}
 
+	// ---------------- Compruebo si termino la partida ---------------- //
+	if(checkWinner(games[matchID].board, switchPlayer(player))){
+		*resCode = GAMEOVER_LOSE;
+		return SOAP_OK;//Si has perdido no despiertas a Nadie
+	}
+	else if(isBoardFull(games[matchID].board)){
+		*resCode = GAMEOVER_DRAW;
+		return SOAP_OK;/* Si hay empate antes de meter la ficha 
+		la ficha del empate la metio el otro, no despiertas a Nadie */
+	}
+	// ---------------- Compruebo si termino la partida ---------------- //
+	
+	//player = switchPlayer(player);
+	insertChip(games[matchID].board, player, column);
+
+	// ----------- Compruebo si mi jugada termino la partida ----------- //
+	if(checkWinner(games[matchID].board, player)) {
+		*resCode = GAMEOVER_WIN;	
+	}
+	else if(isBoardFull(games[matchID].board)) {
+		*resCode = GAMEOVER_DRAW;
+	}
+	// ----------- Compruebo si mi jugada termino la partida ----------- //
+	
+	// ------------------- Wake up the other player ------------------- //
 	games[matchID].currentPlayer = switchPlayer(player);
 	pthread_mutex_lock(&games[matchID].mutex);
-		pthread_cond_signal(&games[matchID].condition);	// Wake up the other player to make a play
+	pthread_cond_signal(&games[matchID].condition);	// Wake up the other player to make a play
 	pthread_mutex_unlock(&games[matchID].mutex);
+	// ------------------- Wake up the other player ------------------- //
 
 	return SOAP_OK;
 }
