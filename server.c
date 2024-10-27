@@ -13,10 +13,10 @@ pthread_mutex_t mutexStatusArray = PTHREAD_MUTEX_INITIALIZER;
 void initServerStructures(){
 
     if (DEBUG_SERVER)
-        printf ("Initializing...\n");
+        printf("Initializing...\n");
 
     // Init seed
-    srand (time(NULL));
+    srand(time(NULL));
 
     // Init each game
     for (int i = 0; i < MAX_GAMES; i++)
@@ -29,26 +29,34 @@ conecta4ns__tPlayer switchPlayer(conecta4ns__tPlayer currentPlayer){
 
 int searchEmptyGame(){
 	
+	pthread_mutex_lock(&mutexStatusArray);
 	int i = 0;
 	while(i < MAX_GAMES && games[i].status == gameReady){
 		++i;
 	}
-
-	if(DEBUG_SERVER)
-		printf("Match found %d\n", i);
+	pthread_mutex_unlock(&mutexStatusArray);
 
 	return i;
 }
 
+void selectRandomPlayer(conecta4ns__tPlayer* currentPlayer){
+	
+	int num = rand();
+	if(num % 2 == 0)
+		*currentPlayer = player1;
+	else
+		*currentPlayer = player2;
+}
+
 int checkPlayer(xsd__string playerName, int gameId) {
-	return strcmp(games[gameId].player1Name, playerName);
+	return strcmp(games[gameId].player1Name, playerName) == 0;
 }
 
 void freeGameByIndex(int i){
 
 	// Allocate and init board
-	games[i].board = (xsd__string) malloc (BOARD_WIDTH*BOARD_HEIGHT);
-	initBoard (games[i].board);
+	games[i].board = (xsd__string) malloc (BOARD_WIDTH * BOARD_HEIGHT);
+	initBoard(games[i].board);
 
 	// Calculate the first player to play
 	if ((rand() % 2) == 0)
@@ -59,14 +67,16 @@ void freeGameByIndex(int i){
 	// Allocate and init player names
 	games[i].player1Name = (xsd__string) malloc (STRING_LENGTH);
 	games[i].player2Name = (xsd__string) malloc (STRING_LENGTH);
-	memset (games[i].player1Name, 0, STRING_LENGTH);
-	memset (games[i].player2Name, 0, STRING_LENGTH);
+	memset(games[i].player1Name, 0, STRING_LENGTH);
+	memset(games[i].player2Name, 0, STRING_LENGTH);
 
 	// Game status
 	games[i].endOfGame = FALSE;
 	games[i].status = gameEmpty;
 
-	// Init mutex and cond variable
+	// Init mutex and condition variable
+	pthread_mutex_init(&games[i].mutex, NULL);
+	pthread_cond_init(&games[i].condition, NULL);
 }
 
 void copyGameStatusStructure(conecta4ns__tBlock* status, char* message, xsd__string board, int newCode){
@@ -100,6 +110,9 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 	
 	// Search for a empty game
 	int match = searchEmptyGame();
+	if(DEBUG_SERVER)
+		printf("Partida %d encontrada para el jugador %s\n", match, playerName.msg);
+
 	if(match == MAX_GAMES){
 		*code = ERROR_SERVER_FULL;
 		return SOAP_OK;
@@ -108,97 +121,130 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 
 	// Update game status
 	if(games[match].status == gameEmpty){	// If match is empty we register the player1
+
 		games[match].status = gameWaitingPlayer;
 		games[match].player1Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player1Name, playerName.msg, playerName.__size);
 
-		printf("Jugador durmiendose\n");
+		if(DEBUG_SERVER)
+			printf("Durmiendo al jugador1\n");
 		pthread_mutex_lock(&games[match].mutex);
 			pthread_cond_wait(&games[match].condition, &games[match].mutex);
 		pthread_mutex_unlock(&games[match].mutex);
-		printf("Jugador despertado\n");
+
+		if(DEBUG_SERVER)
+			printf("Jugador1 despierto\n");
 	}
-	else{									// Player1 already in match so we register player2
+	else if(games[match].status == gameWaitingPlayer){	// Player1 already in match so we register player2
 		if(checkPlayer(playerName.msg, match)) {
+			if(DEBUG_SERVER)
+				printf("Nombres repetidos\n");
 			*code = ERROR_PLAYER_REPEATED;
 			return SOAP_OK;
 		}
 
+		if(DEBUG_SERVER)
+			printf("Despertando al jugador1\n");
+
+		// Select a random player to start
+		selectRandomPlayer(&games[match].currentPlayer);
+		if(DEBUG_SERVER){
+			if(games[match].currentPlayer == player1)
+				printf("Player1 starts!\n");
+			else
+				printf("Player2 starts!\n");	
+		}
+
+		// Save new game data
 		games[match].player2Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player2Name, playerName.msg, playerName.__size);
 		pthread_cond_signal(&games[match].condition);
-		printf("Despertando al jugador1\n");
 		games[match].status = gameReady;
 	}
-	
-	if (DEBUG_SERVER){
+
+	if (DEBUG_SERVER)
 		printf ("[Register] Registering new player -> [%s] on game %d\n", playerName.msg, match);
-	}
 
 	return SOAP_OK;
 }
 
 int conecta4ns__getStatus(struct soap *soap, conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status){
 
-	char messageToPlayer[STRING_LENGTH];
-
-	// Set \0 at the end of the string and alloc memory for the status
-	playerName.msg[playerName.__size] = 0;
+	// Alloc memory for the status
 	allocClearBlock(soap, status);
 	
-	if (DEBUG_SERVER)
-		printf ("Receiving getStatus() request from -> %s [%d] in game %d\n", playerName.msg, playerName.__size, gameId);
-
-	conecta4ns__tPlayer player = checkPlayer(playerName.msg, gameId) ? player1 : player2;
-	if(player != games[gameId].currentPlayer){
-		pthread_mutex_lock(&games[gameId].mutex);
-			pthread_cond_wait(&games[gameId].condition, &games[gameId].mutex);
-		pthread_mutex_unlock(&games[gameId].mutex);
+	if(checkWinner(games[gameId].board, games[gameId].currentPlayer)){
+		copyGameStatusStructure(status, "You win!\0", games[gameId].board, GAMEOVER_WIN);
+		return SOAP_OK;
 	}
+
+	if (DEBUG_SERVER)
+		printf("Receiving getStatus() request from -> %s in game %d\n", playerName.msg, gameId);
+
+	// Select the current player
+	conecta4ns__tPlayer player = checkPlayer(playerName.msg, gameId) ? player1 : player2;
+
+	// Block the player who does not move
+	pthread_mutex_lock(&games[gameId].mutex);
+
+		if(DEBUG_SERVER)
+			printf("El jugador %s esta esperando...\n", playerName.msg);
+
+		while(!games[gameId].endOfGame && games[gameId].currentPlayer != player){
+			pthread_cond_wait(&games[gameId].condition, &games[gameId].mutex);
+		}
+
+		if(DEBUG_SERVER)
+			printf("El jugador %s ahora esta activo!\n", playerName.msg);
+
+		// Check if it is our turn or it we have lost or is a draw
+		if(checkWinner(games[gameId].board, games[gameId].currentPlayer))
+			copyGameStatusStructure(status, "You lose!\0", games[gameId].board, GAMEOVER_LOSE);
+		else if(isBoardFull(games[gameId].board))
+			copyGameStatusStructure(status, "Draw!\0", games[gameId].board, GAMEOVER_DRAW);
+		else
+			copyGameStatusStructure(status, "It's your turn!\0", games[gameId].board, TURN_MOVE);
+	pthread_mutex_unlock(&games[gameId].mutex);
 
 	return SOAP_OK;
 }
 
 int conecta4ns__insertChip(struct soap *soap, conecta4ns__tMessage playerName, int matchID, int column, int* resCode){
 
-	// Comprobar que no se quiere colocar en una columna llena
-	if(!checkMove(games[matchID].board, column)){
+	// Comprobar que no se quiere colocar en una columna llena o el tablero este lleno
+	if(checkMove(games[matchID].board, column) ==  fullColumn_move){
 		*resCode = TURN_MOVE;
 		return SOAP_OK;
-	}	
+	}
 
+	// Obtener el jugador que va a introucir la ficha
 	conecta4ns__tPlayer player = checkPlayer(playerName.msg, matchID) ? player1 : player2;
-
-	// ---------------- Compruebo si termino la partida ---------------- //
-	if(checkWinner(games[matchID].board, switchPlayer(player))){
-		*resCode = GAMEOVER_LOSE;
-		return SOAP_OK;//Si has perdido no despiertas a Nadie
-	}
-	else if(isBoardFull(games[matchID].board)){
-		*resCode = GAMEOVER_DRAW;
-		return SOAP_OK;/* Si hay empate antes de meter la ficha 
-		la ficha del empate la metio el otro, no despiertas a Nadie */
-	}
-	// ---------------- Compruebo si termino la partida ---------------- //
 	
-	//player = switchPlayer(player);
+	// Insertar la ficha
 	insertChip(games[matchID].board, player, column);
-
-	// ----------- Compruebo si mi jugada termino la partida ----------- //
-	if(checkWinner(games[matchID].board, player)) {
-		*resCode = GAMEOVER_WIN;	
-	}
-	else if(isBoardFull(games[matchID].board)) {
-		*resCode = GAMEOVER_DRAW;
-	}
-	// ----------- Compruebo si mi jugada termino la partida ----------- //
 	
-	// ------------------- Wake up the other player ------------------- //
-	games[matchID].currentPlayer = switchPlayer(player);
+	// Actualizar datos de la partida
+	if(checkWinner(games[matchID].board, games[matchID].currentPlayer)){
+		*resCode = GAMEOVER_WIN;
+		games[matchID].endOfGame = TRUE;
+		if(DEBUG_SERVER)
+			printf("%s from game %d has won the match\n", playerName.msg, matchID);
+	}
+	else{
+		if(isBoardFull(games[matchID].board)){
+			*resCode = GAMEOVER_DRAW;
+			games[matchID].endOfGame = TRUE;
+		}
+		else{	// Cambiar turno de la partida
+			games[matchID].currentPlayer = switchPlayer(player);
+			*resCode = TURN_WAIT;
+		}
+	}
+
+	// Despertar al otro jugador
 	pthread_mutex_lock(&games[matchID].mutex);
-	pthread_cond_signal(&games[matchID].condition);	// Wake up the other player to make a play
+		pthread_cond_signal(&games[matchID].condition);
 	pthread_mutex_unlock(&games[matchID].mutex);
-	// ------------------- Wake up the other player ------------------- //
 
 	return SOAP_OK;
 }

@@ -8,7 +8,7 @@
 #define MAX_GAMES 5
 
 /** Type for game status */
-typedef enum {gameEmpty, gameWaitingPlayer, gameReady} tGameState;
+typedef enum { gameEmpty, gameWaitingPlayer, gameReady } tGameState;
 
 /**
  * Struct that contains a game for 2 players

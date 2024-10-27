@@ -2,6 +2,13 @@
 
 #define DEBUG_CLIENT 1
 
+int turnEnded(int code){
+	return code == TURN_WAIT || code == GAMEOVER_WIN || code == GAMEOVER_DRAW || code == GAMEOVER_LOSE;
+}
+
+int gameEnded(int code){
+	return code == GAMEOVER_WIN || code == GAMEOVER_DRAW || code == GAMEOVER_LOSE;
+}
 
 unsigned int readMove (){
 
@@ -50,7 +57,6 @@ unsigned int readMove (){
 	return move;
 }
 
-
 int main(int argc, char **argv){
 
 	struct soap soap;					/** Soap struct */
@@ -82,63 +88,45 @@ int main(int argc, char **argv){
 	gameStatus.code = 0;
 
 	// Check arguments
-	if (argc !=2) {
+	if (argc != 2) {
 		printf("Usage: %s http://server:port\n", argv[0]);
 		exit(0);
 	}
 
-	// Register player
-	printf("Introduce tu nombre: ");
-	fgets(playerName.msg, STRING_LENGTH - 1, stdin);
-	playerName.__size = strlen(playerName.msg) - 1;
-	printf("\n");
-
 	// Add player to the match
 	int matchID;
 	do{
+		printf("Introduce tu nombre: ");
+		fgets(playerName.msg, STRING_LENGTH - 1, stdin);
+		playerName.__size = strlen(playerName.msg);
+		playerName.msg[playerName.__size - 1] = '\0';	// Eliminate the '\n'
 		soap_call_conecta4ns__register(&soap, serverURL, "", playerName, &matchID);
 	} while(matchID == ERROR_SERVER_FULL || matchID == ERROR_PLAYER_REPEATED);
 	printf("Bienvenido %s\n", playerName.msg);
 
-	// Clean the environment
-	free(playerName.msg);
-	soap_destroy(&soap);
-	soap_end(&soap);
-	soap_done(&soap);
-	return 0;
-
 	// Start game
 	while(!endOfGame){
-		
+
 		// Get game status
 		soap_call_conecta4ns__getStatus(&soap, serverURL, "", playerName, matchID, &gameStatus);
 		printBoard(gameStatus.board, gameStatus.msgStruct.msg);
-		
-		/*
-		if(gameStatus.code == GAMEOVER_WIN || gameStatus.code == GAMEOVER_DRAW || gameStatus.code == GAMEOVER_LOSE) {
-		
-			endOfGame = TRUE;
-		}
-		else {
 
-			// Make a move
-			do{
-				unsigned int column = readMove();
-				soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
-			} while(resCode == TURN_MOVE);
+		// Comprobar si la partida ha terminado
+		if(gameEnded(gameStatus.code)){
+			endOfGame = TRUE;
+			continue;
 		}
-		*/
 
 		// Make a move
 		do{
 			unsigned int column = readMove();
 			soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
-		} while(resCode == TURN_MOVE);
+			if(DEBUG_CLIENT)
+				printf("Codigo recibido %d\n", resCode);
+		} while(!turnEnded(resCode));
 
-		if(resCode == GAMEOVER_WIN || resCode == GAMEOVER_DRAW || resCode == GAMEOVER_LOSE) {
-			
-			endOfGame = TRUE;
-		}
+		if(DEBUG_CLIENT)
+			printf("%s hizo un movimiento correcto\n", playerName.msg);
 	}
 
 	// Clean the environment

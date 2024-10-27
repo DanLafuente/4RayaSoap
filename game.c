@@ -3,15 +3,15 @@
 
 void initBoard (xsd__string board){
 	
-	int empty = (int) EMPTY_CELL;
-	for (int i=0; i<(BOARD_WIDTH * BOARD_HEIGHT); i++)
-		board[i] = (char) empty;
+	int empty = (int)EMPTY_CELL;
+	for (int i = 0; i < (BOARD_WIDTH * BOARD_HEIGHT); i++)
+		board[i] = (char)empty;
 }
 
 conecta4ns__tMove checkMove (xsd__string board, unsigned int column){
 
     conecta4ns__tMove move = OK_move;
-	if (board[(BOARD_WIDTH*(BOARD_HEIGHT-1)) + column] != EMPTY_CELL)
+	if (board[(BOARD_WIDTH * (BOARD_HEIGHT-1)) + column] != EMPTY_CELL)
 		move = fullColumn_move;
 
 	return move;
@@ -37,7 +37,7 @@ void insertChip (xsd__string board, conecta4ns__tPlayer player, unsigned int col
 
 		// re-Check!
 		if (cell >= (BOARD_WIDTH * BOARD_HEIGHT))
-			showError ("[insertChip] Checking out of bounds!!! :(\n");
+			showError("[insertChip] Checking out of bounds!!! :(\n");
 	}
 
 	// Insert the chip!
