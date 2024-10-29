@@ -3,7 +3,7 @@
 #define DEBUG_CLIENT 1
 
 int turnEnded(int code){
-	return code == TURN_WAIT || code == GAMEOVER_WIN || code == GAMEOVER_DRAW || code == GAMEOVER_LOSE;
+	return code == TURN_MOVE || code == TURN_REPEAT;
 }
 
 int gameEnded(int code){
@@ -101,6 +101,13 @@ int main(int argc, char **argv){
 		playerName.__size = strlen(playerName.msg);
 		playerName.msg[playerName.__size - 1] = '\0';	// Eliminate the '\n'
 		soap_call_conecta4ns__register(&soap, serverURL, "", playerName, &matchID);
+
+		if(matchID == ERROR_SERVER_FULL){
+			printf("Servidor lleno. Porfavor espere.\n");
+		}
+		else if(matchID == ERROR_PLAYER_REPEATED){
+			printf("Su nombre no puede ser igual al del otro jugador.\n");
+		}
 	} while(matchID == ERROR_SERVER_FULL || matchID == ERROR_PLAYER_REPEATED);
 	printf("Bienvenido %s\n", playerName.msg);
 
@@ -109,6 +116,7 @@ int main(int argc, char **argv){
 
 		// Get game status
 		soap_call_conecta4ns__getStatus(&soap, serverURL, "", playerName, matchID, &gameStatus);
+		gameStatus.msgStruct.msg[gameStatus.msgStruct.__size] = '\0';
 		printBoard(gameStatus.board, gameStatus.msgStruct.msg);
 
 		// Comprobar si la partida ha terminado
@@ -121,9 +129,10 @@ int main(int argc, char **argv){
 		do{
 			unsigned int column = readMove();
 			soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
-			if(DEBUG_CLIENT)
-				printf("Codigo recibido %d\n", resCode);
-		} while(!turnEnded(resCode));
+			if(resCode == TURN_REPEAT)
+				printf("Columna %d llena. Inserta en una columna distinta\n", column);
+				
+		} while(turnEnded(resCode));
 
 		if(DEBUG_CLIENT)
 			printf("%s hizo un movimiento correcto\n", playerName.msg);

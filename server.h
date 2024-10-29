@@ -3,6 +3,7 @@
 #include "game.h"
 #include <pthread.h>
 #include <string.h>
+#include <stdio.h>
 
 /** Maximum number of active games in the server */
 #define MAX_GAMES 5

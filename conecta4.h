@@ -22,6 +22,9 @@
 /** Code for waiting */
 #define TURN_WAIT 70002
 
+/** Code for repeating a move */
+#define TURN_REPEAT 70003
+
 /** Code to show that the player wins */
 #define GAMEOVER_WIN 50052
 

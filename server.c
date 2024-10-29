@@ -39,15 +39,6 @@ int searchEmptyGame(){
 	return i;
 }
 
-void selectRandomPlayer(conecta4ns__tPlayer* currentPlayer){
-	
-	int num = rand();
-	if(num % 2 == 0)
-		*currentPlayer = player1;
-	else
-		*currentPlayer = player2;
-}
-
 int checkPlayer(xsd__string playerName, int gameId) {
 	return strcmp(games[gameId].player1Name, playerName) == 0;
 }
@@ -88,7 +79,7 @@ void copyGameStatusStructure(conecta4ns__tBlock* status, char* message, xsd__str
     memset((status->msgStruct).msg, 0, STRING_LENGTH);
     strcpy ((status->msgStruct).msg, message);
     (status->msgStruct).__size = strlen ((status->msgStruct).msg);
-    
+
     // Copy the board, only if it is not NULL
     if (board == NULL){
         status->board = NULL;
@@ -146,8 +137,6 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 		if(DEBUG_SERVER)
 			printf("Despertando al jugador1\n");
 
-		// Select a random player to start
-		selectRandomPlayer(&games[match].currentPlayer);
 		if(DEBUG_SERVER){
 			if(games[match].currentPlayer == player1)
 				printf("Player1 starts!\n");
@@ -170,19 +159,31 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 
 int conecta4ns__getStatus(struct soap *soap, conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status){
 
+	char message[31];
+
 	// Alloc memory for the status
 	allocClearBlock(soap, status);
 	
 	if(checkWinner(games[gameId].board, games[gameId].currentPlayer)){
 		copyGameStatusStructure(status, "You win!\0", games[gameId].board, GAMEOVER_WIN);
+		printf("Texto: %s\n", status->msgStruct.msg);
+		freeGameByIndex(gameId);
 		return SOAP_OK;
 	}
+	else if(isBoardFull(games[gameId].board)){
+		copyGameStatusStructure(status, "Draw!\0", games[gameId].board, GAMEOVER_DRAW);
+		freeGameByIndex(gameId);
+		return SOAP_OK;
+	}
+
 
 	if (DEBUG_SERVER)
 		printf("Receiving getStatus() request from -> %s in game %d\n", playerName.msg, gameId);
 
 	// Select the current player
 	conecta4ns__tPlayer player = checkPlayer(playerName.msg, gameId) ? player1 : player2;
+	char playerChip = (player == player1) ? PLAYER_1_CHIP : PLAYER_2_CHIP;
+	sprintf(&message, "It's your turn! Your chip is %c", playerChip);
 
 	// Block the player who does not move
 	pthread_mutex_lock(&games[gameId].mutex);
@@ -203,7 +204,7 @@ int conecta4ns__getStatus(struct soap *soap, conecta4ns__tMessage playerName, in
 		else if(isBoardFull(games[gameId].board))
 			copyGameStatusStructure(status, "Draw!\0", games[gameId].board, GAMEOVER_DRAW);
 		else
-			copyGameStatusStructure(status, "It's your turn!\0", games[gameId].board, TURN_MOVE);
+			copyGameStatusStructure(status, &message, games[gameId].board, TURN_MOVE);
 	pthread_mutex_unlock(&games[gameId].mutex);
 
 	return SOAP_OK;
@@ -213,7 +214,7 @@ int conecta4ns__insertChip(struct soap *soap, conecta4ns__tMessage playerName, i
 
 	// Comprobar que no se quiere colocar en una columna llena o el tablero este lleno
 	if(checkMove(games[matchID].board, column) ==  fullColumn_move){
-		*resCode = TURN_MOVE;
+		*resCode = TURN_REPEAT;
 		return SOAP_OK;
 	}
 
