@@ -5,3 +5,5 @@
 ### Comprobar errores de desconexión
 ### Jugador no encontrado
 ### Máximo de partidas alcanzado
+
+### Puesto mutex en status
