@@ -63,7 +63,11 @@ void freeGameByIndex(int i){
 
 	// Game status
 	games[i].endOfGame = FALSE;
+
+	pthread_mutex_lock(&games[i].mutex);
 	games[i].status = gameEmpty;
+	pthread_mutex_unlock(&games[i].mutex);
+
 
 	// Init mutex and condition variable
 	pthread_mutex_init(&games[i].mutex, NULL);
@@ -113,7 +117,10 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 	// Update game status
 	if(games[match].status == gameEmpty){	// If match is empty we register the player1
 
+		pthread_mutex_lock(&games[match].mutex);
 		games[match].status = gameWaitingPlayer;
+		pthread_mutex_unlock(&games[match].mutex);
+
 		games[match].player1Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player1Name, playerName.msg, playerName.__size);
 
@@ -148,7 +155,10 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 		games[match].player2Name = malloc(sizeof(char) * playerName.__size);
 		strncpy(games[match].player2Name, playerName.msg, playerName.__size);
 		pthread_cond_signal(&games[match].condition);
+
+		pthread_mutex_lock(&games[match].mutex);
 		games[match].status = gameReady;
+		pthread_mutex_unlock(&games[match].mutex);
 	}
 
 	if (DEBUG_SERVER)
