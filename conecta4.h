@@ -81,6 +81,7 @@ typedef struct tBlock{
 	xsd__string board;
 }conecta4ns__tBlock;
 
+/** Web Services */
 int conecta4ns__register(conecta4ns__tMessage playerName, int *code);
 int conecta4ns__getStatus(conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status);
 int conecta4ns__insertChip(conecta4ns__tMessage playerName, int matchID, int column, int* resCode);

@@ -2,7 +2,7 @@
 
 #define DEBUG_CLIENT 1
 
-int turnEnded(int code){
+int turnNotEnded(int code){
 	return code == TURN_MOVE || code == TURN_REPEAT;
 }
 
@@ -119,20 +119,20 @@ int main(int argc, char **argv){
 		gameStatus.msgStruct.msg[gameStatus.msgStruct.__size] = '\0';
 		printBoard(gameStatus.board, gameStatus.msgStruct.msg);
 
-		// Comprobar si la partida ha terminado
+		// Check if game has ended
 		if(gameEnded(gameStatus.code)){
 			endOfGame = TRUE;
 			continue;
 		}
 
-		// Make a move
+		// Make a valid move
 		do{
 			unsigned int column = readMove();
 			soap_call_conecta4ns__insertChip(&soap, serverURL, "", playerName, matchID, column, &resCode);
 			if(resCode == TURN_REPEAT)
 				printf("Columna %d llena. Inserta en una columna distinta\n", column);
 				
-		} while(turnEnded(resCode));
+		} while(turnNotEnded(resCode));
 
 		if(DEBUG_CLIENT)
 			printf("%s hizo un movimiento correcto\n", playerName.msg);

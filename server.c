@@ -64,10 +64,10 @@ void freeGameByIndex(int i){
 	// Game status
 	games[i].endOfGame = FALSE;
 
-	pthread_mutex_lock(&games[i].mutex);
+	// Protect variable to init game
+	pthread_mutex_lock(&mutexStatusArray);
 	games[i].status = gameEmpty;
-	pthread_mutex_unlock(&games[i].mutex);
-
+	pthread_mutex_unlock(&mutexStatusArray);
 
 	// Init mutex and condition variable
 	pthread_mutex_init(&games[i].mutex, NULL);
@@ -156,6 +156,7 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 		strncpy(games[match].player2Name, playerName.msg, playerName.__size);
 		pthread_cond_signal(&games[match].condition);
 
+		// Declare the game as started
 		pthread_mutex_lock(&games[match].mutex);
 		games[match].status = gameReady;
 		pthread_mutex_unlock(&games[match].mutex);
@@ -169,7 +170,7 @@ int conecta4ns__register(struct soap *soap, conecta4ns__tMessage playerName, int
 
 int conecta4ns__getStatus(struct soap *soap, conecta4ns__tMessage playerName, int gameId, conecta4ns__tBlock* status){
 
-	char message[31];
+	char message[30];
 
 	// Alloc memory for the status
 	allocClearBlock(soap, status);
@@ -222,19 +223,14 @@ int conecta4ns__getStatus(struct soap *soap, conecta4ns__tMessage playerName, in
 
 int conecta4ns__insertChip(struct soap *soap, conecta4ns__tMessage playerName, int matchID, int column, int* resCode){
 
-	// Comprobar que no se quiere colocar en una columna llena o el tablero este lleno
 	if(checkMove(games[matchID].board, column) ==  fullColumn_move){
 		*resCode = TURN_REPEAT;
 		return SOAP_OK;
 	}
 
-	// Obtener el jugador que va a introucir la ficha
 	conecta4ns__tPlayer player = checkPlayer(playerName.msg, matchID) ? player1 : player2;
-	
-	// Insertar la ficha
 	insertChip(games[matchID].board, player, column);
 	
-	// Actualizar datos de la partida
 	if(checkWinner(games[matchID].board, games[matchID].currentPlayer)){
 		*resCode = GAMEOVER_WIN;
 		games[matchID].endOfGame = TRUE;
@@ -246,13 +242,13 @@ int conecta4ns__insertChip(struct soap *soap, conecta4ns__tMessage playerName, i
 			*resCode = GAMEOVER_DRAW;
 			games[matchID].endOfGame = TRUE;
 		}
-		else{	// Cambiar turno de la partida
+		else{	// Only here we change the turn -> having the winner in the currentPlayer
 			games[matchID].currentPlayer = switchPlayer(player);
 			*resCode = TURN_WAIT;
 		}
 	}
 
-	// Despertar al otro jugador
+	// Wake up the other player
 	pthread_mutex_lock(&games[matchID].mutex);
 		pthread_cond_signal(&games[matchID].condition);
 	pthread_mutex_unlock(&games[matchID].mutex);

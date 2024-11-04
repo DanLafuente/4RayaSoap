@@ -1,9 +1,2 @@
 # 4RayaSoap
-
-## Terminado - Comprobar:
-### Partidas simultaneas
-### Comprobar errores de desconexión
-### Jugador no encontrado
-### Máximo de partidas alcanzado
-
-### Puesto mutex en status
+## Terminado el 04/11/2024
